@@ -1,31 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Compass, ShieldAlert, BookOpen, Coffee, Flame, Server, 
-  MapPin, HelpCircle, UtensilsCrossed, CalendarDays, Key, Settings
+  MapPin, HelpCircle, UtensilsCrossed, CalendarDays, Key, Settings, LogOut, User
 } from 'lucide-react';
 import { Booking } from './types';
 import { SEED_BOOKINGS } from './data';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { bookingsApi } from './api/client';
 import BookingWizard from './components/BookingWizard';
 import AdminPortal from './components/AdminPortal';
 import DevDocs from './components/DevDocs';
+import Login from './components/Login';
 
-export default function App() {
+function AppContent() {
+  const { user, isAuthenticated, logout, isLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<'customer' | 'admin' | 'developer'>('customer');
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [appLoading, setAppLoading] = useState(false);
 
-  // Load bookings from localStorage on mount, fall back to seed bookings
+  // Load bookings from API on mount
   useEffect(() => {
-    const saved = localStorage.getItem('t_pizza_bookings');
-    if (saved) {
-      try {
-        setBookings(JSON.parse(saved));
-      } catch (e) {
+    if (isAuthenticated) {
+      loadBookings();
+    }
+  }, [isAuthenticated]);
+
+  const loadBookings = async () => {
+    try {
+      setAppLoading(true);
+      // For now, fall back to seed data. In production, fetch from API
+      const saved = localStorage.getItem('t_pizza_bookings');
+      if (saved) {
+        try {
+          setBookings(JSON.parse(saved));
+        } catch (e) {
+          setBookings(SEED_BOOKINGS);
+        }
+      } else {
         setBookings(SEED_BOOKINGS);
       }
-    } else {
+    } catch (error) {
+      console.error('Failed to load bookings:', error);
       setBookings(SEED_BOOKINGS);
+    } finally {
+      setAppLoading(false);
     }
-  }, []);
+  };
+
+  if (!isAuthenticated) {
+    return <Login onLoginSuccess={() => {}} />;
+  }
 
   // Save bookings to localStorage whenever they change
   const saveBookings = (updatedList: Booking[]) => {
@@ -82,42 +106,62 @@ export default function App() {
             </div>
           </div>
 
-          {/* Navigation tabs switcher */}
-          <div className="flex bg-[#E5E2DA]/50 p-1 border border-[#E5E2DA] rounded-xl gap-1">
-            <button
-              onClick={() => setActiveTab('customer')}
-              className={`flex items-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold tracking-widest uppercase transition-all cursor-pointer ${
-                activeTab === 'customer'
-                  ? 'bg-[#4A4A3E] text-white shadow-sm font-extrabold'
-                  : 'text-[#4A4A3E] hover:text-[#2C2C2C] hover:bg-white/50'
-              }`}
-            >
-              <Compass className="w-4 h-4 shrink-0" />
-              Đặt bàn ăn
-            </button>
-            <button
-              onClick={() => setActiveTab('admin')}
-              className={`flex items-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold tracking-widest uppercase transition-all cursor-pointer ${
-                activeTab === 'admin'
-                  ? 'bg-[#4A4A3E] text-white shadow-sm font-extrabold'
-                  : 'text-[#4A4A3E] hover:text-[#2C2C2C] hover:bg-white/50'
-              }`}
-            >
-              <Settings className="w-4 h-4 shrink-0" />
-              Quản trị viên
-            </button>
-            <button
-              onClick={() => setActiveTab('developer')}
-              className={`flex items-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold tracking-widest uppercase transition-all cursor-pointer ${
-                activeTab === 'developer'
-                  ? 'bg-[#4A4A3E] text-white shadow-sm font-extrabold'
-                  : 'text-[#4A4A3E] hover:text-[#2C2C2C] hover:bg-white/50'
-              }`}
-              style={activeTab === 'developer' ? { backgroundColor: '#4A4A3E', color: '#ffffff' } : {}}
-            >
-              <Server className="w-4 h-4 shrink-0" />
-              Specs & DB
-            </button>
+          {/* Navigation tabs and user menu */}
+          <div className="flex items-center gap-4">
+            {/* Navigation tabs switcher */}
+            <div className="flex bg-[#E5E2DA]/50 p-1 border border-[#E5E2DA] rounded-xl gap-1">
+              <button
+                onClick={() => setActiveTab('customer')}
+                className={`flex items-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold tracking-widest uppercase transition-all cursor-pointer ${
+                  activeTab === 'customer'
+                    ? 'bg-[#4A4A3E] text-white shadow-sm font-extrabold'
+                    : 'text-[#4A4A3E] hover:text-[#2C2C2C] hover:bg-white/50'
+                }`}
+              >
+                <Compass className="w-4 h-4 shrink-0" />
+                Đặt bàn ăn
+              </button>
+              {user?.role_name && (user.role_name === 'Admin' || user.role === 'admin') && (
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`flex items-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold tracking-widest uppercase transition-all cursor-pointer ${
+                    activeTab === 'admin'
+                      ? 'bg-[#4A4A3E] text-white shadow-sm font-extrabold'
+                      : 'text-[#4A4A3E] hover:text-[#2C2C2C] hover:bg-white/50'
+                  }`}
+                >
+                  <Settings className="w-4 h-4 shrink-0" />
+                  Quản trị viên
+                </button>
+              )}
+              <button
+                onClick={() => setActiveTab('developer')}
+                className={`flex items-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold tracking-widest uppercase transition-all cursor-pointer ${
+                  activeTab === 'developer'
+                    ? 'bg-[#4A4A3E] text-white shadow-sm font-extrabold'
+                    : 'text-[#4A4A3E] hover:text-[#2C2C2C] hover:bg-white/50'
+                }`}
+                style={activeTab === 'developer' ? { backgroundColor: '#4A4A3E', color: '#ffffff' } : {}}
+              >
+                <Server className="w-4 h-4 shrink-0" />
+                Specs & DB
+              </button>
+            </div>
+
+            {/* User profile menu */}
+            <div className="flex items-center gap-2 pl-4 border-l border-[#E5E2DA]">
+              <div className="text-right text-xs">
+                <p className="font-bold text-[#2C2C2C]">{user?.username}</p>
+                <p className="text-[#4A4A3E] opacity-70">{user?.role_name}</p>
+              </div>
+              <button
+                onClick={logout}
+                className="p-2 hover:bg-[#E5E2DA] rounded-lg transition-colors"
+                title="Logout"
+              >
+                <LogOut className="w-4 h-4 text-[#4A4A3E]" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -189,5 +233,13 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }

@@ -163,7 +163,7 @@ export default function AdminPortal({ bookings, onUpdateStatus, onDeleteBooking 
           }`}
         >
           <Calendar className="w-4 h-4" />
-          Danh sách Booking ({filteredBookings.length})
+          Danh Sách Đặt Bàn
         </button>
         <button
           onClick={() => setAdminTab('tables')}
@@ -174,7 +174,7 @@ export default function AdminPortal({ bookings, onUpdateStatus, onDeleteBooking 
           }`}
         >
           <LayoutGrid className="w-4 h-4" />
-          Sơ đồ Bàn ăn (Interactive Grid)
+          Sơ Đồ Phân Bàn
         </button>
         <button
           onClick={() => setAdminTab('statistics')}
@@ -380,7 +380,15 @@ export default function AdminPortal({ bookings, onUpdateStatus, onDeleteBooking 
               {/* Zone legends */}
               <div className="flex flex-wrap gap-3">
                 <span className="flex items-center gap-1.5 text-[10px] font-mono text-[#4A4A3E]">
-                  <span cl            {/* Group Tables by Zone in Grid visual */}
+                  <span className="w-3 h-3 rounded bg-white border border-[#E5E2DA]"></span> Trống (Available)
+                </span>
+                <span className="flex items-center gap-1.5 text-[10px] font-mono text-[#4A4A3E]">
+                  <span className="w-3 h-3 rounded bg-[#4A4A3E]/10 border border-[#4A4A3E] animate-pulse"></span> Đã Đặt (Reserved)
+                </span>
+              </div>
+            </div>
+
+            {/* Group Tables by Zone in Grid visual */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {['Trong nhà', 'Ngoài trời', 'Quầy tầng lửng', 'Cạnh lò củi'].map((zoneName) => {
                 const zoneTables = branchTables.filter(t => t.zone === zoneName);
@@ -521,15 +529,6 @@ export default function AdminPortal({ bookings, onUpdateStatus, onDeleteBooking 
                       <li>🍕 Pizza dăm lạt: ước tính cần sẵn sàng <strong className="text-[#2C2C2C] font-bold">{Math.ceil(totalBookedGuests * 0.75)} mẻ bánh</strong> bột chua.</li>
                       <li>🧀 Phô mai tươi Burrata / Mozzarella: cần chuẩn bị <strong className="text-[#2C2C2C] font-bold">{Math.ceil(totalBookedGuests * 0.5)} quả phô mai</strong> trong ngày.</li>
                       <li>🪵 Củi dăm đun sồi khô: cần tiếp nguyên liệu <strong className="text-[#2C2C2C] font-bold">{Math.ceil(totalBookedGuests * 0.2)} kg củi khô</strong> cho lò pizza hoạt động hết công suất.</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}��n sẵn sàng <strong className="text-amber-400">{Math.ceil(totalBookedGuests * 0.75)} mẻ bánh</strong> bột chua.</li>
-                      <li>🧀 Phô mai tươi Burrata / Mozzarella: cần chuẩn bị <strong className="text-amber-400">{Math.ceil(totalBookedGuests * 0.5)} quả phô mai</strong> trong ngày.</li>
-                      <li>🪵 Củi dăm đun sồi khô: cần tiếp nguyên liệu <strong className="text-amber-400">{Math.ceil(totalBookedGuests * 0.2)} kg củi khô</strong> cho lò pizza hoạt động hết công suất.</li>
                     </ul>
                   </div>
                 </div>

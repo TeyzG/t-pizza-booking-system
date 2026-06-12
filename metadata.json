@@ -1,0 +1,6 @@
+{
+  "name": "T'Pizza Booking System",
+  "description": "Hệ thống đặt bàn Pizza 4P's-style cao cấp với luồng Step-by-Step, Admin Dashboard và Hướng dẫn lập trình Django + MySQL",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -24,6 +24,7 @@ class Role(models.Model):
 class CustomUser(AbstractUser):
     phone = models.CharField(max_length=20, blank=True)
     role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, related_name='users')
+    branch = models.ForeignKey('Branch', on_delete=models.SET_NULL, null=True, blank=True, related_name='staff')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -175,6 +176,8 @@ class Notification(models.Model):
         ('booking_confirmed', 'Đặt bàn được xác nhận'),
         ('booking_reminder', 'Nhắc nhở đặt bàn'),
         ('booking_cancelled', 'Đặt bàn bị hủy'),
+        ('status_update', 'Cập nhật trạng thái đặt bàn'),
+        ('staff_action', 'Nhân viên thao tác'),
         ('system', 'Thông báo hệ thống'),
     ]
     
@@ -192,3 +195,85 @@ class Notification(models.Model):
     
     def __str__(self):
         return f"{self.get_notification_type_display()} - {self.user.username}"
+
+
+class ChatSession(models.Model):
+    """Chatbot session for tracking conversations"""
+    session_id = models.CharField(max_length=100, unique=True)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, null=True, blank=True, related_name='chat_sessions')
+    branch = models.ForeignKey(Branch, on_delete=models.SET_NULL, null=True, blank=True)
+    context_data = models.JSONField(default=dict, blank=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'chat_sessions'
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Chat {self.session_id}"
+
+
+class ChatMessage(models.Model):
+    """Individual message in a chatbot session"""
+    ROLE_CHOICES = [
+        ('user', 'User'),
+        ('assistant', 'Assistant'),
+    ]
+    
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES)
+    content = models.TextField()
+    intent = models.CharField(max_length=100, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'chat_messages'
+        ordering = ['created_at']
+    
+    def __str__(self):
+        return f"[{self.role}] {self.content[:50]}"
+
+
+class Category(models.Model):
+    """Menu item categories"""
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    order = models.IntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = 'menu_categories'
+        ordering = ['order', 'name']
+        verbose_name = 'Danh mục thực đơn'
+        verbose_name_plural = 'Danh mục thực đơn'
+
+    def __str__(self):
+        return self.name
+
+
+class MenuItem(models.Model):
+    """Individual menu items"""
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='menu_items')
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=0) # Price in VND, no decimals
+    image_url = models.URLField(blank=True, null=True)
+    is_available = models.BooleanField(default=True)
+    is_special = models.BooleanField(default=False) # e.g., best seller, chef's special
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'menu_items'
+        ordering = ['category__order', 'name']
+        verbose_name = 'Món ăn'
+        verbose_name_plural = 'Món ăn'
+
+    def __str__(self):
+        return f"{self.name} ({self.category.name})"
+
+    def get_price_display(self):
+        return f"{int(self.price):,}đ".replace(',', '.') # Format to 100.000đ

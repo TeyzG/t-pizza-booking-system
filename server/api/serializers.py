@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
-from core.models import CustomUser, Role, Branch, Table, Booking, Permission, Notification
+from core.models import CustomUser, Role, Branch, Table, Booking, Permission, Notification, ChatSession, ChatMessage, Category, MenuItem
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -17,10 +17,11 @@ class PermissionSerializer(serializers.ModelSerializer):
 
 class CustomUserSerializer(serializers.ModelSerializer):
     role_name = serializers.CharField(source='role.get_name_display', read_only=True)
+    branch_name = serializers.CharField(source='branch.name', read_only=True)
     
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone', 'role', 'role_name', 'is_active', 'created_at']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'phone', 'role', 'role_name', 'branch', 'branch_name', 'is_active', 'created_at']
         read_only_fields = ['created_at']
 
 
@@ -143,3 +144,52 @@ class DashboardStatisticsSerializer(serializers.Serializer):
     total_guests = serializers.IntegerField()
     hourly_distribution = serializers.DictField()
     zone_distribution = serializers.DictField()
+
+
+# === Chatbot Serializers ===
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatMessage
+        fields = ['id', 'session', 'role', 'content', 'intent', 'metadata', 'created_at']
+        read_only_fields = ['created_at']
+
+
+class ChatSessionSerializer(serializers.ModelSerializer):
+    messages = ChatMessageSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = ChatSession
+        fields = ['id', 'session_id', 'user', 'branch', 'context_data', 'is_active', 'messages', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class ChatbotRequestSerializer(serializers.Serializer):
+    message = serializers.CharField(required=True)
+    session_id = serializers.CharField(required=False, default='default')
+
+
+class ChatbotResponseSerializer(serializers.Serializer):
+    answer = serializers.CharField()
+    intent = serializers.CharField()
+    session_id = serializers.CharField()
+
+
+class MenuItemSerializer(serializers.ModelSerializer):
+    price_display = serializers.CharField(source='get_price_display', read_only=True)
+
+    class Meta:
+        model = MenuItem
+        fields = [
+            'id', 'name', 'description', 'price', 'price_display',
+            'image_url', 'is_available', 'is_special', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    menu_items = MenuItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'description', 'order', 'is_active', 'menu_items']

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from core.models import CustomUser, Role, Branch, Table, Booking, Permission, Notification
+from core.models import CustomUser, Role, Branch, Table, Booking, Permission, Notification, ChatSession, ChatMessage, Category, MenuItem
 
 
 @admin.register(Role)
@@ -10,12 +10,12 @@ class RoleAdmin(admin.ModelAdmin):
 
 @admin.register(CustomUser)
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ['username', 'email', 'phone', 'role', 'is_active', 'created_at']
-    list_filter = ['role', 'is_active', 'created_at']
+    list_display = ['username', 'email', 'phone', 'role', 'branch', 'is_active', 'created_at']
+    list_filter = ['role', 'branch', 'is_active', 'created_at']
     search_fields = ['username', 'email', 'phone']
     fieldsets = (
         ('Personal Info', {'fields': ('username', 'email', 'first_name', 'last_name', 'phone')}),
-        ('Permissions', {'fields': ('role', 'is_active', 'is_staff', 'is_superuser')}),
+        ('Permissions', {'fields': ('role', 'branch', 'is_active', 'is_staff', 'is_superuser')}),
         ('Important Dates', {'fields': ('last_login', 'created_at', 'updated_at')}),
     )
     readonly_fields = ['created_at', 'updated_at']
@@ -51,7 +51,7 @@ class TableAdmin(admin.ModelAdmin):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ['booking_code', 'customer', 'branch', 'booking_date', 'booking_time', 'status']
+    list_display = ['booking_code', 'customer', 'branch', 'booking_date', 'booking_time', 'status', 'customer_notes']
     list_filter = ['status', 'branch', 'booking_date']
     search_fields = ['booking_code', 'customer__username', 'customer__email']
     fieldsets = (
@@ -77,3 +77,36 @@ class NotificationAdmin(admin.ModelAdmin):
     list_filter = ['notification_type', 'is_read', 'created_at']
     search_fields = ['user__username', 'title', 'message']
     readonly_fields = ['created_at']
+
+
+@admin.register(ChatSession)
+class ChatSessionAdmin(admin.ModelAdmin):
+    list_display = ['session_id', 'user', 'is_active', 'created_at']
+    list_filter = ['is_active', 'created_at']
+    search_fields = ['session_id', 'user__username']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(ChatMessage)
+class ChatMessageAdmin(admin.ModelAdmin):
+    list_display = ['session', 'role', 'content', 'intent', 'created_at']
+    list_filter = ['role', 'intent', 'created_at']
+    search_fields = ['content', 'intent']
+    readonly_fields = ['created_at']
+
+
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ['name', 'order', 'is_active']
+    list_filter = ['is_active']
+    search_fields = ['name']
+    ordering = ['order']
+
+
+@admin.register(MenuItem)
+class MenuItemAdmin(admin.ModelAdmin):
+    list_display = ['name', 'category', 'price', 'is_available', 'is_special']
+    list_filter = ['category', 'is_available', 'is_special']
+    search_fields = ['name', 'description']
+    ordering = ['category__order', 'name']
+    raw_id_fields = ['category'] # For easier category selection if many categories

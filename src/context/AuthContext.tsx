@@ -10,6 +10,8 @@ export interface User {
   phone: string;
   role: string;
   role_name: string;
+  branch: number | null;
+  branch_name: string | null;
   is_active: boolean;
   created_at: string;
 }
@@ -40,9 +42,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedUser = localStorage.getItem('user');
 
     if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
-      apiClient.setToken(savedToken);
+      try {
+        setToken(savedToken);
+        setUser(JSON.parse(savedUser));
+        apiClient.setToken(savedToken);
+      } catch (err) {
+        console.error('Failed to parse saved user data:', err);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
 
     setIsLoading(false);

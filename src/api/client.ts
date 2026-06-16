@@ -1,4 +1,6 @@
 // API configuration and utilities
+import { PaginatedResponse, Branch, Table, Booking, DashboardStatistics, ChatbotResponse } from '../types';
+
 const API_BASE_URL = 'http://localhost:8000/api';
 
 export interface ApiResponse<T> {
@@ -89,6 +91,20 @@ class ApiClient {
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
   }
+
+  /**
+   * Build a query string from an object of params, skipping null/undefined.
+   */
+  buildParams(params: Record<string, any>): string {
+    const search = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== null && value !== undefined && value !== '') {
+        search.append(key, String(value));
+      }
+    }
+    const str = search.toString();
+    return str ? `?${str}` : '';
+  }
 }
 
 export const apiClient = new ApiClient();
@@ -96,10 +112,10 @@ export const apiClient = new ApiClient();
 // Auth API
 export const authApi = {
   login: (username: string, password: string) =>
-    apiClient.post<any>('/auth/login/', { username, password }),
+    apiClient.post<{ token: string; user: any }>('/auth/login/', { username, password }),
 
   register: (userData: any) =>
-    apiClient.post<any>('/auth/register/', userData),
+    apiClient.post<{ token: string; user: any }>('/auth/register/', userData),
 
   logout: () => {
     apiClient.clearToken();
@@ -111,92 +127,92 @@ export const authApi = {
 
 // Branches API
 export const branchesApi = {
-  getAll: (filters?: any) => {
-    const params = new URLSearchParams(filters).toString();
-    return apiClient.get<any>(`/branches/${params ? '?' + params : ''}`);
+  getAll: (filters?: Record<string, any>) => {
+    const qs = filters ? apiClient.buildParams(filters) : '';
+    return apiClient.get<PaginatedResponse<Branch>>(`/branches/${qs}`);
   },
 
-  getById: (id: string) =>
-    apiClient.get<any>(`/branches/${id}/`),
+  getById: (id: number) =>
+    apiClient.get<Branch>(`/branches/${id}/`),
 
   create: (data: any) =>
-    apiClient.post<any>('/branches/', data),
+    apiClient.post<Branch>('/branches/', data),
 
-  update: (id: string, data: any) =>
-    apiClient.patch<any>(`/branches/${id}/`, data),
+  update: (id: number, data: any) =>
+    apiClient.patch<Branch>(`/branches/${id}/`, data),
 
-  delete: (id: string) =>
-    apiClient.delete<any>(`/branches/${id}/`),
+  delete: (id: number) =>
+    apiClient.delete<void>(`/branches/${id}/`),
 };
 
 // Tables API
 export const tablesApi = {
-  getAll: (filters?: any) => {
-    const params = new URLSearchParams(filters).toString();
-    return apiClient.get<any>(`/tables/${params ? '?' + params : ''}`);
+  getAll: (filters?: Record<string, any>) => {
+    const qs = filters ? apiClient.buildParams(filters) : '';
+    return apiClient.get<PaginatedResponse<Table>>(`/tables/${qs}`);
   },
 
-  getAvailable: (branchId: string, date: string, time: string, zone?: string, capacity?: number) => {
-    const params = new URLSearchParams({
+  getAvailable: (branchId: number, date: string, time: string, zone?: string, capacity?: number) => {
+    const params: Record<string, any> = {
       branch_id: branchId,
       date,
       time,
-      ...(zone && { zone }),
-      ...(capacity && { capacity: capacity.toString() }),
-    }).toString();
-    return apiClient.get<any>(`/tables/available_tables/?${params}`);
+    };
+    if (zone && zone !== 'any') params.zone = zone;
+    if (capacity) params.capacity = capacity;
+    return apiClient.get<Table[]>(`/tables/available_tables/${apiClient.buildParams(params)}`);
   },
 
-  getById: (id: string) =>
-    apiClient.get<any>(`/tables/${id}/`),
+  getById: (id: number) =>
+    apiClient.get<Table>(`/tables/${id}/`),
 
-  update: (id: string, data: any) =>
-    apiClient.patch<any>(`/tables/${id}/`, data),
+  update: (id: number, data: any) =>
+    apiClient.patch<Table>(`/tables/${id}/`, data),
 };
 
 // Bookings API
 export const bookingsApi = {
-  getAll: (filters?: any) => {
-    const params = new URLSearchParams(filters).toString();
-    return apiClient.get<any>(`/bookings/${params ? '?' + params : ''}`);
+  getAll: (filters?: Record<string, any>) => {
+    const qs = filters ? apiClient.buildParams(filters) : '';
+    return apiClient.get<PaginatedResponse<Booking>>(`/bookings/${qs}`);
   },
 
-  getById: (id: string) =>
-    apiClient.get<any>(`/bookings/${id}/`),
+  getById: (id: number) =>
+    apiClient.get<Booking>(`/bookings/${id}/`),
 
   create: (data: any) =>
-    apiClient.post<any>('/bookings/', data),
+    apiClient.post<Booking>('/bookings/', data),
 
-  update: (id: string, data: any) =>
-    apiClient.patch<any>(`/bookings/${id}/`, data),
+  update: (id: number, data: any) =>
+    apiClient.patch<Booking>(`/bookings/${id}/`, data),
 
-  delete: (id: string) =>
-    apiClient.delete<any>(`/bookings/${id}/`),
+  delete: (id: number) =>
+    apiClient.delete<void>(`/bookings/${id}/`),
 
   getMyBookings: () =>
-    apiClient.get<any>('/bookings/my_bookings/'),
+    apiClient.get<Booking[]>('/bookings/my_bookings/'),
 
-  confirm: (id: string) =>
-    apiClient.post<any>(`/bookings/${id}/confirm/`),
+  confirm: (id: number) =>
+    apiClient.post<Booking>(`/bookings/${id}/confirm/`),
 
-  checkIn: (id: string) =>
-    apiClient.post<any>(`/bookings/${id}/check_in/`),
+  checkIn: (id: number) =>
+    apiClient.post<Booking>(`/bookings/${id}/check_in/`),
 
-  cancel: (id: string) =>
-    apiClient.post<any>(`/bookings/${id}/cancel/`),
+  cancel: (id: number) =>
+    apiClient.post<Booking>(`/bookings/${id}/cancel/`),
 
-  getStatistics: (filters?: any) => {
-    const params = new URLSearchParams(filters).toString();
-    return apiClient.get<any>(`/bookings/statistics/${params ? '?' + params : ''}`);
+  getStatistics: (filters?: Record<string, any>) => {
+    const qs = filters ? apiClient.buildParams(filters) : '';
+    return apiClient.get<DashboardStatistics>(`/bookings/statistics/${qs}`);
   },
 };
 
 // Notifications API
 export const notificationsApi = {
   getAll: () =>
-    apiClient.get<any>('/notifications/'),
+    apiClient.get<PaginatedResponse<any>>('/notifications/'),
 
-  markAsRead: (id: string) =>
+  markAsRead: (id: number) =>
     apiClient.post<any>(`/notifications/${id}/mark_as_read/`),
 
   markAllAsRead: () =>
@@ -206,13 +222,30 @@ export const notificationsApi = {
 // Users API
 export const usersApi = {
   getAll: () =>
-    apiClient.get<any>('/users/'),
+    apiClient.get<PaginatedResponse<any>>('/users/'),
 
-  getById: (id: string) =>
+  getById: (id: number) =>
     apiClient.get<any>(`/users/${id}/`),
 
-  changePassword: (id: string, data: any) =>
+  changePassword: (id: number, data: any) =>
     apiClient.post<any>(`/users/${id}/change_password/`, data),
+};
+
+// Chatbot API
+export const chatbotApi = {
+  sendMessage: (message: string, sessionId?: string) =>
+    apiClient.post<ChatbotResponse>('/chatbot/', {
+      message,
+      session_id: sessionId || 'default',
+    }),
+
+  getHistory: (sessionId?: string) => {
+    const qs = sessionId ? `?session_id=${sessionId}` : '';
+    return apiClient.get<{ messages: any[] }>(`/chatbot/history/${qs}`);
+  },
+
+  clearSession: (sessionId: string) =>
+    apiClient.post<void>('/chatbot/clear/', { session_id: sessionId }),
 };
 
 export default apiClient;

@@ -7,8 +7,7 @@ import os
 import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'tpizza_backend.settings')
 django.setup()
-
-from core.models import Role, Permission, CustomUser, Branch, Table, Booking
+from core.models import Role, Permission, CustomUser, Branch, Table, Booking, Category, MenuItem
 from django.contrib.auth.hashers import make_password
 from datetime import datetime, timedelta
 
@@ -283,6 +282,60 @@ for i, customer in enumerate(customer_users):
 
 print(f"   ✓ Created {booking_count} sample bookings")
 
+# Create Sample Menu Categories and Items
+print("\n9. Creating Sample Menu Categories and Items...")
+
+categories_data = [
+    {'name': 'Pizza Lò Củi Đặc Trưng', 'order': 1},
+    {'name': 'Mỳ Ý & Risotto', 'order': 2},
+    {'name': 'Khai Vị & Salad', 'order': 3},
+    {'name': 'Tráng Miệng', 'order': 4},
+    {'name': 'Đồ Uống', 'order': 5},
+]
+
+categories = {}
+for cat_data in categories_data:
+    category, created = Category.objects.get_or_create(
+        name=cat_data['name'],
+        defaults=cat_data
+    )
+    categories[category.name] = category
+    if created:
+        print(f"   ✓ Created menu category: {category.name}")
+
+menu_items_data = [
+    # Pizza
+    {'category': categories['Pizza Lò Củi Đặc Trưng'], 'name': 'Pizza Burrata', 'description': 'Phô mai Burrata tươi, cà chua San Marzano, lá basil', 'price': 280000, 'is_special': True, 'image_url': 'https://images.unsplash.com/photo-1628840042761-356cda0f02d9?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Pizza Lò Củi Đặc Trưng'], 'name': 'Pizza Prosciutto e Funghi', 'description': 'Thịt đùi heo muối Prosciutto, nấm tươi, phô mai Mozzarella', 'price': 265000, 'image_url': 'https://images.unsplash.com/photo-1590947132387-d9053817700a?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Pizza Lò Củi Đặc Trưng'], 'name': 'Pizza Margherita DOC', 'description': 'Cà chua San Marzano, Mozzarella di Bufala, lá basil tươi', 'price': 240000, 'image_url': 'https://images.unsplash.com/photo-1574126154517-d1e0d89ef098?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Pizza Lò Củi Đặc Trưng'], 'name': 'Pizza Bốn Mùa (Quattro Stagioni)', 'description': 'Bốn loại topping khác nhau tượng trưng 4 mùa', 'price': 270000, 'image_url': 'https://images.unsplash.com/photo-1594007654729-407edc192ba0?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Pizza Lò Củi Đặc Trưng'], 'name': 'Pizza Hải Sản (Frutti di Mare)', 'description': 'Hải sản tươi sống, sốt cà chua, olive', 'price': 320000, 'image_url': 'https://images.unsplash.com/photo-1579751626657-c3a23f22960f?auto=format&fit=crop&w=400&q=80'},
+    # Pasta
+    {'category': categories['Mỳ Ý & Risotto'], 'name': 'Spaghetti Carbonara', 'description': 'Trứng, thịt xông khói Pancetta, phô mai Pecorino Romano', 'price': 185000, 'is_special': True, 'image_url': 'https://images.unsplash.com/photo-1588013279120-f155106277c0?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Mỳ Ý & Risotto'], 'name': 'Tagliatelle Bolognese', 'description': 'Sốt thịt bò hầm truyền thống, mỳ dẹt tươi', 'price': 195000, 'image_url': 'https://images.unsplash.com/photo-1563612116625-30123f730e83?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Mỳ Ý & Risotto'], 'name': 'Linguine Vongole', 'description': 'Nghêu tươi, tỏi, ớt, rượu vang trắng', 'price': 210000, 'image_url': 'https://images.unsplash.com/photo-1551185611-3c582736111f?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Mỳ Ý & Risotto'], 'name': 'Risotto Nấm Truffle', 'description': 'Gạo Arborio, nấm Truffle đen, phô mai Parmesan', 'price': 290000, 'image_url': 'https://images.unsplash.com/photo-1598512752316-f52556f18357?auto=format&fit=crop&w=400&q=80'},
+    # Appetizer
+    {'category': categories['Khai Vị & Salad'], 'name': 'Salad Burrata & Cà Chua', 'description': 'Phô mai Burrata, cà chua bi, dầu olive', 'price': 160000, 'image_url': 'https://images.unsplash.com/photo-1512621776951-a5739df2af8a?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Khai Vị & Salad'], 'name': 'Bruschetta Trio', 'description': 'Ba loại Bruschetta khác nhau: cà chua, nấm, patê', 'price': 120000, 'image_url': 'https://images.unsplash.com/photo-1571772928015-731ff901137c?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Khai Vị & Salad'], 'name': 'Calamari Fritti', 'description': 'Mực ống chiên giòn kiểu Ý', 'price': 145000, 'image_url': 'https://images.unsplash.com/photo-1580959375944-abd7e991f971?auto=format&fit=crop&w=400&q=80'},
+    # Dessert
+    {'category': categories['Tráng Miệng'], 'name': 'Tiramisu Cổ Điển', 'description': 'Bánh ladyfinger, cà phê, kem mascarpone', 'price': 95000, 'is_special': True, 'image_url': 'https://images.unsplash.com/photo-1571223311616-fd2703e2070f?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Tráng Miệng'], 'name': 'Panna Cotta Dâu Rừng', 'description': 'Panna Cotta mềm mịn, sốt dâu rừng tươi', 'price': 85000, 'image_url': 'https://images.unsplash.com/photo-1584983050165-05574972551a?auto=format&fit=crop&w=400&q=80'},
+    # Drinks
+    {'category': categories['Đồ Uống'], 'name': 'Bia Thủ Công T\'Pizza', 'description': 'Độc quyền T\'Pizza (Pale Ale, IPA)', 'price': 80000, 'image_url': 'https://images.unsplash.com/photo-1543007633-28952458421c?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Đồ Uống'], 'name': 'Vang Ý (Ly/Chai)', 'description': 'Tuyển chọn các dòng vang đỏ/trắng Ý', 'price': 120000, 'image_url': 'https://images.unsplash.com/photo-1551791866-f5611445778a?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Đồ Uống'], 'name': 'Nước Ép Tươi', 'description': 'Cam, táo, dưa hấu, dứa', 'price': 65000, 'image_url': 'https://images.unsplash.com/photo-1506804892097-402120092e8a?auto=format&fit=crop&w=400&q=80'},
+    {'category': categories['Đồ Uống'], 'name': 'Cà Phê Ý', 'description': 'Espresso, Cappuccino, Latte', 'price': 50000, 'image_url': 'https://images.unsplash.com/photo-1517256064527-09c1db3243af?auto=format&fit=crop&w=400&q=80'},
+]
+
+for item_data in menu_items_data:
+    MenuItem.objects.get_or_create(
+        name=item_data['name'],
+        defaults=item_data
+    )
+    # print(f"   ✓ Created menu item: {item_data['name']}")
+
 print("\n" + "=" * 60)
 print("Database initialization completed successfully!")
 print("=" * 60)
@@ -290,3 +343,4 @@ print("\nYou can now log in with:")
 print("  Admin: admin / admin123")
 print("  Staff: staff_1 / staff123")
 print("  Customer: customer_1 / customer123")
+print("\nAnd manage menu items via Django Admin!")

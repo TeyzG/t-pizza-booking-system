@@ -1,38 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  MapPin, Calendar as CalendarIcon, Users, Check, ArrowRight, ArrowLeft,
-  Phone, AlertCircle, Loader, CheckCircle2, Info, Clock
+  MapPin, Users, Check, ArrowRight, ArrowLeft,
+  Phone, AlertCircle, Loader, CheckCircle2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { branchesApi, bookingsApi } from '../api/client';
-
-interface Branch {
-  id: number;
-  name: string;
-  location: string;
-  address: string;
-  phone: string;
-  image_url: string;
-  rating: number;
-  status: string;
-}
-
-interface Booking {
-  id: number;
-  booking_code: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string;
-  branch: number;
-  booking_date: string;
-  booking_time: string;
-  adult_count: number;
-  children_count: number;
-  zone_preference: string;
-  special_requests: string;
-  customer_notes: string;
-  status: string;
-}
+import { Branch, Booking, BookingCreate } from '../types';
 
 interface BookingWizardProps {
   onBookingSuccess?: (booking: Booking) => void;
@@ -58,11 +31,6 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
   const [specialRequests, setSpecialRequests] = useState('');
   const [customerNotes, setCustomerNotes] = useState('');
   const [zonePreference, setZonePreference] = useState('indoor');
-  
-  // Contact info (pre-filled from user)
-  const [fullName, setFullName] = useState(user?.first_name || '');
-  const [phone, setPhone] = useState(user?.phone || '');
-  const [email, setEmail] = useState(user?.email || '');
 
   // Results
   const [createdBooking, setCreatedBooking] = useState<Booking | null>(null);
@@ -76,11 +44,10 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
     try {
       setIsLoading(true);
       const response = await branchesApi.getAll();
-      const branchList = response.results || response;
-      setBranches(Array.isArray(branchList) ? branchList : []);
+      const branchList = Array.isArray(response) ? response : response.results;
+      setBranches(branchList || []);
       
-      // Extract unique locations
-      const uniqueLocations = [...new Set(branchList.map((b: Branch) => b.location))];
+      const uniqueLocations = [...new Set((branchList || []).map((b: Branch) => b.location))];
       setLocations(uniqueLocations as string[]);
       
       if (uniqueLocations.length > 0) {
@@ -101,6 +68,7 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
     if (filteredBranches.length > 0 && !selectedBranch) {
       setSelectedBranch(filteredBranches[0]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLocation]);
 
   // Generate date options (next 14 days)
@@ -120,14 +88,12 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
   // Generate time slots
   const getTimeSlots = () => {
     const slots = [];
-    // Lunch: 11:00-14:30
     for (let h = 11; h <= 14; h++) {
       for (let m = 0; m < 60; m += 30) {
         if (h === 14 && m > 0) continue;
         slots.push(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`);
       }
     }
-    // Dinner: 17:00-22:00
     for (let h = 17; h <= 21; h++) {
       for (let m = 0; m < 60; m += 30) {
         if (h === 21 && m > 30) continue;
@@ -142,49 +108,28 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
   const handleCreateBooking = async () => {
     setError('');
 
-    if (!fullName.trim()) {
-      setError('Vui lòng nhập họ tên');
-      return;
-    }
-    if (!phone.trim()) {
-      setError('Vui lòng nhập số điện thoại');
-      return;
-    }
-    if (!email.trim()) {
-      setError('Vui lòng nhập email');
-      return;
-    }
-    if (!selectedBranch) {
-      setError('Vui lòng chọn chi nhánh');
-      return;
-    }
-    if (!selectedDate) {
-      setError('Vui lòng chọn ngày');
-      return;
-    }
-    if (!selectedTime) {
-      setError('Vui lòng chọn giờ');
-      return;
-    }
+    if (!selectedBranch) { setError('Vui lòng chọn chi nhánh'); return; }
+    if (!selectedDate) { setError('Vui lòng chọn ngày'); return; }
+    if (!selectedTime) { setError('Vui lòng chọn giờ'); return; }
 
     try {
       setIsLoading(true);
 
-      const bookingData = {
+      const bookingData: BookingCreate = {
         branch: selectedBranch.id,
         booking_date: selectedDate,
         booking_time: selectedTime,
         adult_count: adults,
         children_count: children,
         zone_preference: zonePreference,
-        special_requests: specialRequests,
-        customer_notes: customerNotes,
+        special_requests: specialRequests || undefined,
+        customer_notes: customerNotes || undefined,
       };
 
       const response = await bookingsApi.create(bookingData);
       setCreatedBooking(response);
       onBookingSuccess?.(response);
-      setStep(4); // Success screen
+      setStep(4);
     } catch (err: any) {
       setError('Lỗi tạo đặt bàn: ' + err.message);
     } finally {
@@ -199,6 +144,13 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
     { value: 'kiln', label: '🔥 Cạnh lò' },
   ];
 
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('vi-VN', {
+      weekday: 'short', year: 'numeric', month: 'numeric', day: 'numeric'
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Step indicator */}
@@ -208,7 +160,7 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
             <button
               onClick={() => s < step && setStep(s)}
               disabled={s > step}
-              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all ${
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-2 transition-all cursor-pointer ${
                 step === s
                   ? 'bg-[#4A4A3E] border-[#4A4A3E] text-white'
                   : step > s
@@ -242,13 +194,12 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
               Chọn Chi Nhánh
             </h2>
 
-            {/* Location tabs */}
             <div className="mb-6 flex flex-wrap gap-2">
               {locations.map((loc) => (
                 <button
                   key={loc}
                   onClick={() => setSelectedLocation(loc)}
-                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-all border ${
+                  className={`px-4 py-2 rounded-lg font-medium text-sm transition-all border cursor-pointer ${
                     selectedLocation === loc
                       ? 'bg-[#4A4A3E] text-white border-[#4A4A3E]'
                       : 'bg-white text-[#4A4A3E] border-[#E5E2DA] hover:border-[#4A4A3E]'
@@ -259,7 +210,6 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
               ))}
             </div>
 
-            {/* Branch list */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {isLoading ? (
                 <div className="col-span-2 flex items-center justify-center py-12">
@@ -270,12 +220,15 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
                   <button
                     key={branch.id}
                     onClick={() => setSelectedBranch(branch)}
-                    className={`p-4 border rounded-lg text-left transition-all ${
+                    className={`group p-4 border rounded-xl text-left transition-all cursor-pointer overflow-hidden ${
                       selectedBranch?.id === branch.id
                         ? 'border-[#4A4A3E] bg-[#4A4A3E]/5 ring-1 ring-[#4A4A3E]'
                         : 'border-[#E5E2DA] hover:border-[#4A4A3E]'
                     }`}
                   >
+                    <div className="h-32 -mx-4 -mt-4 mb-3 overflow-hidden">
+                      <img src={branch.image_url} alt={branch.name} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                    </div>
                     <div className="font-bold text-[#2C2C2C] mb-1">{branch.name}</div>
                     <div className="text-xs text-[#4A4A3E] flex items-start gap-1 mb-2">
                       <MapPin size={14} className="mt-0.5 flex-shrink-0" />
@@ -286,8 +239,12 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
                     </div>
                     <div className="mt-2 flex items-center gap-2 text-xs">
                       <span className="font-semibold text-amber-600">★ {branch.rating}</span>
-                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded text-[10px] font-bold">
-                        {branch.status === 'active' ? 'Hoạt động' : 'Bận'}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        branch.status === 'active' 
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                      }`}>
+                        {branch.status_display}
                       </span>
                     </div>
                   </button>
@@ -302,7 +259,7 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
             <button
               onClick={() => setStep(2)}
               disabled={!selectedBranch}
-              className="w-full py-3 bg-[#4A4A3E] text-white rounded-lg font-bold disabled:bg-gray-400 hover:bg-[#2C2C2C] transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 bg-[#4A4A3E] text-white rounded-lg font-bold disabled:bg-gray-400 hover:bg-[#2C2C2C] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
               Tiếp Tục <ArrowRight size={20} />
             </button>
@@ -318,53 +275,50 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
             </h2>
 
             <div className="space-y-4 mb-6">
-              {/* Guests */}
               <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Số khách</label>
                 <div className="flex gap-4">
                   <div className="flex-1">
                     <label className="text-xs text-[#4A4A3E] block mb-1">Người lớn</label>
                     <div className="flex items-center border border-[#E5E2DA] rounded-lg">
-                      <button onClick={() => setAdults(Math.max(1, adults - 1))} className="px-3 py-2 text-[#4A4A3E]">−</button>
+                      <button onClick={() => setAdults(Math.max(1, adults - 1))} className="px-3 py-2 text-[#4A4A3E] cursor-pointer">−</button>
                       <span className="flex-1 text-center font-bold">{adults}</span>
-                      <button onClick={() => setAdults(adults + 1)} className="px-3 py-2 text-[#4A4A3E]">+</button>
+                      <button onClick={() => setAdults(adults + 1)} className="px-3 py-2 text-[#4A4A3E] cursor-pointer">+</button>
                     </div>
                   </div>
                   <div className="flex-1">
                     <label className="text-xs text-[#4A4A3E] block mb-1">Trẻ em</label>
                     <div className="flex items-center border border-[#E5E2DA] rounded-lg">
-                      <button onClick={() => setChildren(Math.max(0, children - 1))} className="px-3 py-2 text-[#4A4A3E]">−</button>
+                      <button onClick={() => setChildren(Math.max(0, children - 1))} className="px-3 py-2 text-[#4A4A3E] cursor-pointer">−</button>
                       <span className="flex-1 text-center font-bold">{children}</span>
-                      <button onClick={() => setChildren(children + 1)} className="px-3 py-2 text-[#4A4A3E]">+</button>
+                      <button onClick={() => setChildren(children + 1)} className="px-3 py-2 text-[#4A4A3E] cursor-pointer">+</button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Date */}
               <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Ngày đặt</label>
                 <select
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="w-full border border-[#E5E2DA] rounded-lg px-3 py-2 focus:outline-none focus:border-[#4A4A3E]"
+                  className="w-full border border-[#E5E2DA] rounded-lg px-3 py-2 focus:outline-none focus:border-[#4A4A3E] bg-white"
                 >
                   <option value="">-- Chọn ngày --</option>
                   {dateOptions.map((date) => (
                     <option key={date} value={date}>
-                      {new Date(date).toLocaleDateString('vi-VN')}
+                      {formatDate(date)}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Time */}
               <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Giờ đặt</label>
                 <select
                   value={selectedTime}
                   onChange={(e) => setSelectedTime(e.target.value)}
-                  className="w-full border border-[#E5E2DA] rounded-lg px-3 py-2 focus:outline-none focus:border-[#4A4A3E]"
+                  className="w-full border border-[#E5E2DA] rounded-lg px-3 py-2 focus:outline-none focus:border-[#4A4A3E] bg-white"
                 >
                   <option value="">-- Chọn giờ --</option>
                   {timeSlots.map((time) => (
@@ -375,7 +329,6 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
                 </select>
               </div>
 
-              {/* Zone preference */}
               <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Khu vực ưa thích</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -383,7 +336,7 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
                     <button
                       key={zone.value}
                       onClick={() => setZonePreference(zone.value)}
-                      className={`p-3 border rounded-lg text-sm font-medium transition-all ${
+                      className={`p-3 border rounded-lg text-sm font-medium transition-all cursor-pointer ${
                         zonePreference === zone.value
                           ? 'bg-[#4A4A3E] text-white border-[#4A4A3E]'
                           : 'bg-white text-[#4A4A3E] border-[#E5E2DA] hover:border-[#4A4A3E]'
@@ -395,7 +348,6 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
                 </div>
               </div>
 
-              {/* Special requests */}
               <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Yêu cầu đặc biệt</label>
                 <textarea
@@ -407,7 +359,6 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
                 />
               </div>
 
-              {/* Customer notes */}
               <div>
                 <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Ghi chú thêm</label>
                 <textarea
@@ -423,13 +374,14 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
             <div className="flex gap-3">
               <button
                 onClick={() => setStep(1)}
-                className="flex-1 py-3 border border-[#4A4A3E] text-[#4A4A3E] rounded-lg font-bold hover:bg-[#4A4A3E]/5"
+                className="flex-1 py-3 border border-[#4A4A3E] text-[#4A4A3E] rounded-lg font-bold hover:bg-[#4A4A3E]/5 cursor-pointer"
               >
                 Quay Lại
               </button>
               <button
                 onClick={() => setStep(3)}
-                className="flex-1 py-3 bg-[#4A4A3E] text-white rounded-lg font-bold hover:bg-[#2C2C2C] transition-all flex items-center justify-center gap-2"
+                disabled={!selectedDate || !selectedTime}
+                className="flex-1 py-3 bg-[#4A4A3E] text-white rounded-lg font-bold hover:bg-[#2C2C2C] transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 Tiếp Tục <ArrowRight size={20} />
               </button>
@@ -452,55 +404,35 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
               </div>
               <div className="flex justify-between">
                 <span className="text-[#4A4A3E]">Ngày giờ:</span>
-                <span className="font-bold">{selectedDate} {selectedTime}</span>
+                <span className="font-bold">{formatDate(selectedDate)} • {selectedTime}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#4A4A3E]">Số khách:</span>
                 <span className="font-bold">{adults} người lớn, {children} trẻ em</span>
               </div>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Họ tên *</label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="w-full border border-[#E5E2DA] rounded-lg px-3 py-2 focus:outline-none focus:border-[#4A4A3E]"
-                />
+              <div className="flex justify-between">
+                <span className="text-[#4A4A3E]">Khu vực:</span>
+                <span className="font-bold">{zones.find(z => z.value === zonePreference)?.label}</span>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Số điện thoại *</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full border border-[#E5E2DA] rounded-lg px-3 py-2 focus:outline-none focus:border-[#4A4A3E]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#2C2C2C] mb-2">Email *</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-[#E5E2DA] rounded-lg px-3 py-2 focus:outline-none focus:border-[#4A4A3E]"
-                />
-              </div>
+              {specialRequests && (
+                <div className="flex justify-between">
+                  <span className="text-[#4A4A3E]">Yêu cầu:</span>
+                  <span className="font-bold">{specialRequests}</span>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">
               <button
                 onClick={() => setStep(2)}
-                className="flex-1 py-3 border border-[#4A4A3E] text-[#4A4A3E] rounded-lg font-bold hover:bg-[#4A4A3E]/5"
+                className="flex-1 py-3 border border-[#4A4A3E] text-[#4A4A3E] rounded-lg font-bold hover:bg-[#4A4A3E]/5 cursor-pointer"
               >
                 Quay Lại
               </button>
               <button
                 onClick={handleCreateBooking}
                 disabled={isLoading}
-                className="flex-1 py-3 bg-[#4A4A3E] text-white rounded-lg font-bold hover:bg-[#2C2C2C] transition-all disabled:bg-gray-400 flex items-center justify-center gap-2"
+                className="flex-1 py-3 bg-[#4A4A3E] text-white rounded-lg font-bold hover:bg-[#2C2C2C] transition-all disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
               >
                 {isLoading ? <Loader size={20} className="animate-spin" /> : <CheckCircle2 size={20} />}
                 {isLoading ? 'Đang xử lý...' : 'Xác Nhận Đặt Bàn'}
@@ -514,21 +446,23 @@ export default function BookingWizard({ onBookingSuccess }: BookingWizardProps) 
           <div className="text-center">
             <CheckCircle2 className="w-16 h-16 text-emerald-600 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-[#2C2C2C] mb-2">Đặt Bàn Thành Công!</h2>
-            <p className="text-[#4A4A3E] mb-6">Mã đặt bàn của bạn: <strong className="font-mono text-lg">{createdBooking.booking_code}</strong></p>
+            <p className="text-[#4A4A3E] mb-6">
+              Mã đặt bàn: <strong className="font-mono text-lg">{createdBooking.booking_code}</strong>
+            </p>
             
             <div className="bg-[#F9F8F6] rounded-lg p-6 mb-6 space-y-2 text-left text-sm">
-              <p><strong>Chi nhánh:</strong> {selectedBranch?.name}</p>
-              <p><strong>Ngày:</strong> {new Date(createdBooking.booking_date).toLocaleDateString('vi-VN')}</p>
+              <p><strong>Chi nhánh:</strong> {createdBooking.branch_name}</p>
+              <p><strong>Ngày:</strong> {createdBooking.booking_date}</p>
               <p><strong>Giờ:</strong> {createdBooking.booking_time}</p>
-              <p><strong>Số khách:</strong> {createdBooking.adult_count + createdBooking.children_count}</p>
-              <p><strong>Trạng thái:</strong> <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">{createdBooking.status}</span></p>
+              <p><strong>Số khách:</strong> {createdBooking.total_guests}</p>
+              <p><strong>Trạng thái:</strong> <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-bold">{createdBooking.status_display}</span></p>
             </div>
 
             <button
-              onClick={() => window.location.reload()}
-              className="w-full py-3 bg-[#4A4A3E] text-white rounded-lg font-bold hover:bg-[#2C2C2C] transition-all"
+              onClick={() => { setStep(1); setCreatedBooking(null); setSelectedDate(''); setSelectedTime(''); setSpecialRequests(''); setCustomerNotes(''); }}
+              className="w-full py-3 bg-[#4A4A3E] text-white rounded-lg font-bold hover:bg-[#2C2C2C] transition-all cursor-pointer"
             >
-              Quay Về Trang Chủ
+              Đặt Bàn Mới
             </button>
           </div>
         )}

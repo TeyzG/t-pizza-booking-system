@@ -7,7 +7,7 @@ interface LoginProps {
 }
 
 export default function Login({ onLoginSuccess }: LoginProps) {
-  const { login, isLoading, error, clearError } = useAuth();
+  const { login, register, isLoading, error, clearError } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -34,6 +34,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     }
   };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearError();
+    try {
+      await register(registerData);
+      onLoginSuccess?.();
+    } catch (err) {
+      // Lỗi được xử lý bởi AuthContext
+    }
+  };
+
   const handleRegisterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setRegisterData((prev) => ({
@@ -57,7 +68,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               </div>
             )}
 
-            <form className="space-y-4">
+            <form onSubmit={handleRegister} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Tên đăng nhập *

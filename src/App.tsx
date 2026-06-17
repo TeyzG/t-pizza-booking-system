@@ -143,7 +143,7 @@ function AppContent() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-serif tracking-widest font-bold uppercase text-[#2C2C2C]">T'PIZZA </h1>
+                <h1 className="text-xl font-serif tracking-widest font-bold uppercase text-[#2C2C2C]">T'PIZZA by Hoàng Lương MAYTECH</h1>
                 <span className="bg-[#4A4A3E]/10 text-[#4A4A3E] text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded border border-[#4A4A3E]/20">
                   ARTISANAL
                 </span>

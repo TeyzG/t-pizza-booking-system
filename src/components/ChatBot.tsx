@@ -90,7 +90,7 @@ export default function ChatBot() {
       {
         id: 'welcome_re',
         role: 'assistant',
-        content: '👋 Chào bạn! Tôi là trợ lý T\'Pizza. Tôi có thể giúp bạn các thông tin về thực đơn, chi nhánh và đặt bàn. Hãy hỏi tôi nhé! 🍕',
+        content: '👋 Chào bạn! Tôi là trợ lý T\'Pizza by Hoàng Lương MAYTECH. Tôi có thể giúp bạn các thông tin về thực đơn, chi nhánh và đặt bàn. Hãy hỏi tôi nhé! 🍕',
         created_at: new Date().toISOString(),
       }
     ]);
@@ -116,7 +116,7 @@ export default function ChatBot() {
           {/* Header */}
           <div className="bg-[#4A4A3E] text-white px-4 py-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2">
-              <Bot className="w-5 h-5" />
+              <Bot className="w-5 h-5 text-white" />
               <div>
                 <span className="font-bold text-sm">T'Pizza Assistant</span>
                 <span className="text-[10px] text-white/70 block">AI Chatbot • Trực tuyến</span>

@@ -1,5 +1,5 @@
 // API configuration and utilities
-import { PaginatedResponse, Branch, Table, Booking, DashboardStatistics, ChatbotResponse } from '../types';
+import { PaginatedResponse, Branch, Table, Booking, DashboardStatistics, ChatbotResponse, Category, MenuItem } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
@@ -217,6 +217,22 @@ export const notificationsApi = {
 
   markAllAsRead: () =>
     apiClient.post<any>('/notifications/mark_all_as_read/'),
+};
+
+// Menu API
+export const categoriesApi = {
+  getAll: () =>
+    apiClient.get<PaginatedResponse<Category>>('/menu/categories/'),
+};
+
+export const menuItemsApi = {
+  getAll: (filters?: Record<string, any>) => {
+    const qs = filters ? apiClient.buildParams(filters) : '';
+    return apiClient.get<PaginatedResponse<MenuItem>>(`/menu/items/${qs}`);
+  },
+
+  getSpecials: () =>
+    apiClient.get<MenuItem[]>('/menu/items/specials/'),
 };
 
 // Users API

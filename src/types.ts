@@ -107,6 +107,27 @@ export interface DashboardStatistics {
   zone_distribution: Record<string, number>;
 }
 
+// === Menu Types ===
+
+export interface MenuItem {
+  id: number;
+  name: string;
+  description: string;
+  price: string;
+  price_display: string;
+  image_url: string | null;
+  is_available: boolean;
+  is_special: boolean;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  description: string;
+  order: number;
+  menu_items: MenuItem[];
+}
+
 // === Chatbot Types ===
 
 export interface ChatMessage {
